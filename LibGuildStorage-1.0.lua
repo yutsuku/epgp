@@ -35,7 +35,7 @@
 -- changed.
 --
 local MAJOR_VERSION = "LibGuildStorage-1.0"
-local MINOR_VERSION = tonumber(("$Revision: 1399 $"):match("%d+")) or 0
+local MINOR_VERSION = tonumber(("$Revision: 1400 $"):match("%d+")) or 0
 
 local lib, oldMinor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
@@ -54,6 +54,7 @@ if lib.frame then
   lib.frame:SetScript("OnUpdate", nil)
 else
   lib.frame = CreateFrame("Frame", MAJOR_VERSION .. "_Frame")
+  lib.frame.elapsed = 0
 end
 local frame = lib.frame
 frame:Show()
@@ -232,6 +233,7 @@ end
 
 local function Frame_OnUpdate(self, elapsed)
   debugprofilestart()
+  self.elapsed = self.elapsed + elapsed
   if state == "CURRENT" then
     return
   end
@@ -257,9 +259,13 @@ local function Frame_OnUpdate(self, elapsed)
       callbacks:Fire("GuildInfoChanged", guild_info)
     end
   end
+  
+  -- throttle update, servers don't like spam from large guilds
+  if self.elapsed < 2 then return end
+  self.elapsed = 0
 
-  -- Read up to 100 members at a time.
-  local last_index = math.min(index + 100, GetNumGuildMembers(true))
+  -- Read up to 50 members at a time.
+  local last_index = math.min(index + 50, GetNumGuildMembers(true))
   Debug("Processing from %d to %d members", index, last_index)
 
   for i = index, last_index do
